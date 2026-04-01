@@ -4,7 +4,15 @@ import axios from 'axios';
 function WateringReport() {
   const [waterings, setWaterings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState('all'); // เพิ่ม State สำหรับตัวกรอง
+  
+  // --- State สำหรับตัวกรอง (Filter) ---
+  const [filterType, setFilterType] = useState('all');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // เพิ่ม State สำหรับเลือกช่วงวันที่ (เพื่อแทนการเลือกสัปดาห์ใดๆ)
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  
   const [editData, setEditData] = useState(null); 
 
   const fetchWaterings = async () => {
@@ -22,36 +30,42 @@ function WateringReport() {
     fetchWaterings();
   }, []);
 
-  // --- ฟังก์ชันสำหรับกรองข้อมูล (Logic ใหม่) ---
+  // --- Logic การกรองข้อมูล ---
   const filteredData = waterings.filter(item => {
-    if (filterType === 'all') return true;
-    
     const recordDate = new Date(item.date);
-    const now = new Date();
+    recordDate.setHours(0, 0, 0, 0); // ล้างค่าเวลาออกเพื่อเทียบแค่วันที่
 
-    if (filterType === 'week') {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(now.getDate() - 7);
-      return recordDate >= oneWeekAgo;
+    if (filterType === 'all') return true;
+
+    // เลือกช่วงวันที่ (ใช้แทน "สัปดาห์ไหนก็ได้")
+    if (filterType === 'range') {
+      if (!startDate || !endDate) return true;
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      return recordDate >= start && recordDate <= end;
     }
+    
     if (filterType === 'month') {
-      return recordDate.getMonth() === now.getMonth() && recordDate.getFullYear() === now.getFullYear();
+      return recordDate.getMonth() === parseInt(selectedMonth) && 
+             recordDate.getFullYear() === parseInt(selectedYear);
     }
+    
     if (filterType === 'year') {
-      return recordDate.getFullYear() === now.getFullYear();
+      return recordDate.getFullYear() === parseInt(selectedYear);
     }
+    
     return true;
   });
 
+  // ... (ฟังก์ชัน deleteRecord, handleEditClick, handleUpdate เหมือนเดิม) ...
   const deleteRecord = async (id) => {
     if (window.confirm('คุณแน่ใจหรือไม่ที่จะลบรายการนี้?')) {
       try {
-        // แก้ไข URL ให้มี /api/ ตามที่คุยกัน
         await axios.delete(`https://durian-backend-api.onrender.com/api/watering/${id}`);
         fetchWaterings();
-      } catch (err) {
-        alert('ลบไม่สำเร็จ');
-      }
+      } catch (err) { alert('ลบไม่สำเร็จ'); }
     }
   };
 
@@ -66,9 +80,7 @@ function WateringReport() {
       alert('อัปเดตข้อมูลสำเร็จ! ✨');
       setEditData(null);
       fetchWaterings();
-    } catch (err) {
-      alert('อัปเดตไม่สำเร็จ');
-    }
+    } catch (err) { alert('อัปเดตไม่สำเร็จ'); }
   };
 
   if (loading) return <div className="text-center mt-5">กำลังโหลด...</div>;
@@ -83,23 +95,52 @@ function WateringReport() {
           </button>
         </div>
 
-        {/* --- ส่วนเลือกตัวกรอง (UI ใหม่) --- */}
-        <div className="row mb-4 bg-light p-3 rounded shadow-sm mx-1">
-          <div className="col-md-6 d-flex align-items-center gap-3">
-            <label className="fw-bold text-secondary text-nowrap">ช่วงเวลาที่แสดง:</label>
+        {/* --- ส่วนเลือกตัวกรอง --- */}
+        <div className="row mb-4 bg-light p-3 rounded shadow-sm mx-1 border">
+          <div className="col-12 d-flex flex-wrap align-items-center gap-2">
+            <label className="fw-bold text-secondary">กรองโดย:</label>
+            
             <select 
-              className="form-select border-primary" 
+              className="form-select w-auto border-primary" 
               value={filterType} 
               onChange={(e) => setFilterType(e.target.value)}
             >
-              <option value="all">ทั้งหมด</option>
-              <option value="week">สัปดาห์นี้ (7 วันล่าสุด)</option>
-              <option value="month">เดือนนี้</option>
-              <option value="year">ปีนี้</option>
+              <option value="all">แสดงทั้งหมด</option>
+              <option value="range">เลือกช่วงวันที่ (สัปดาห์/ระบุเอง)</option>
+              <option value="month">เลือกตามเดือน</option>
+              <option value="year">เลือกตามปี</option>
             </select>
-          </div>
-          <div className="col-md-6 text-end d-none d-md-block">
-            <small className="text-muted">พบทั้งหมด {filteredData.length} รายการ</small>
+
+            {/* ส่วนเลือกช่วงวันที่ (Range) */}
+            {filterType === 'range' && (
+              <div className="d-flex align-items-center gap-2">
+                <input type="date" className="form-control form-control-sm" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <span>ถึง</span>
+                <input type="date" className="form-control form-control-sm" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+            )}
+
+            {/* ส่วนเลือกเดือน */}
+            {filterType === 'month' && (
+              <select className="form-select w-auto border-info" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                {["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"].map((m, i) => (
+                  <option key={i} value={i}>{m}</option>
+                ))}
+              </select>
+            )}
+
+            {/* ส่วนเลือกปี */}
+            {(filterType === 'month' || filterType === 'year') && (
+              <select className="form-select w-auto border-info" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                {[2024, 2025, 2026, 2027].map(y => (
+                  <option key={y} value={y}>{y + 543} (พ.ศ.)</option>
+                ))}
+              </select>
+            )}
+            
+            <div className="ms-auto">
+              <span className="badge bg-primary rounded-pill">พบ {filteredData.length} รายการ</span>
+            </div>
           </div>
         </div>
         
@@ -123,7 +164,7 @@ function WateringReport() {
                     <td className="fw-bold">{item.time}</td>
                     <td><span className="badge bg-info text-dark">{item.zone}</span></td>
                     <td>{item.duration} นาที</td>
-                    <td className="text-start">{item.note}</td>
+                    <td className="text-start">{item.note || '-'}</td>
                     <td className="text-center">
                       <button className="btn btn-warning btn-sm me-2" onClick={() => handleEditClick(item)}>✏️ แก้ไข</button>
                       <button className="btn btn-danger btn-sm" onClick={() => deleteRecord(item._id)}>🗑️ ลบ</button>
@@ -131,15 +172,13 @@ function WateringReport() {
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan="6" className="text-center py-4 text-muted">ไม่พบข้อมูลในช่วงเวลานี้</td>
-                </tr>
+                <tr><td colSpan="6" className="text-center py-5 text-muted">🚫 ไม่พบข้อมูลในช่วงเวลาที่เลือก</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* --- Modal แก้ไขคงเดิม --- */}
+        {/* ... (Modal แก้ไข เหมือนเดิม) ... */}
         {editData && (
           <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog modal-dialog-centered">
