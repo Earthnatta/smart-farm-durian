@@ -10,7 +10,7 @@ function WateringReport() {
 
   const fetchWaterings = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/watering');
+      const res = await axios.get('https://durian-backend-api.onrender.com/api/watering');
       setWaterings(res.data);
       setLoading(false);
     } catch (err) {
@@ -26,7 +26,7 @@ function WateringReport() {
   const deleteRecord = async (id) => {
     if (window.confirm('คุณแน่ใจหรือไม่ที่จะลบรายการนี้?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/watering/${id}`);
+        await axios.delete(`https://durian-backend-api.onrender.com/api/watering/${id}`);
         fetchWaterings();
       } catch (err) {
         alert('ลบไม่สำเร็จ');
@@ -43,7 +43,7 @@ function WateringReport() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/api/watering/${editData._id}`, editData);
+      await axios.put(`https://durian-backend-api.onrender.com/api/watering/${editData._id}`, editData);
       alert('อัปเดตข้อมูลสำเร็จ! ✨');
       setEditData(null); // ปิดหน้าต่างแก้ไข
       fetchWaterings();  // โหลดข้อมูลใหม่

@@ -13,7 +13,7 @@ function WateringForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/watering', formData);
+      await axios.post('https://durian-backend-api.onrender.com/api/watering', formData);
       alert('บันทึกข้อมูลการให้น้ำสำเร็จ! 🌱');
       setFormData({ date: '', time: '08:00', duration: '', zone: '', note: '' });
     } catch (err) {
