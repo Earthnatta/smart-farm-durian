@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  frontend:
+    # เปลี่ยนจาก node:18-alpine เป็น node:22-alpine
+    image: node:22-alpine
+    working_dir: /app/frontend
+    volumes:
+      - .:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+  backend:
+    # เปลี่ยนเป็น 22 ด้วยเพื่อความเสถียรที่เท่ากัน
+    image: node:22-alpine
+    working_dir: /app/backend
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    command: sh -c "npm install && npm start"
